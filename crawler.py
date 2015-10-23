@@ -5,19 +5,19 @@ from multiprocessing.dummy import Pool as ThreadPool
 from functools import partial
 
 
-def walk(walkList, layer, regex, analysis, visited=[], req=requests):
+def walk(walkList, layer, regex, visited=[], req=requests):
 	print('layer:',layer)
-	links = multiWalk(walkList, analysis, req)
+	links = multiWalk(walkList, req)
 	visited += walkList
 	walkList = unique(links,visited,regex)
 
 	if layer > 0 and walkList:
 		layer -= 1
-		walk(walkList, layer, regex, analysis, visited, req)
+		walk(walkList, layer, regex, visited, req)
 
-def multiWalk(walkList, analysis, req):
+def multiWalk(walkList, req):
 	pool = ThreadPool(4)
-	fun = partial(findLink, analysis, req)
+	fun = partial(findLink, req)
 	results = pool.map(fun, walkList)
 	pool.close()
 	pool.join()
@@ -27,7 +27,7 @@ def multiWalk(walkList, analysis, req):
 		links += li
 	return links
 
-def findLink(analysis, req, url):
+def findLink(req, url):
 	print(url)
 	links = []
 	html = req.get(url,verify=False).text
@@ -61,3 +61,13 @@ def login(url, username, password):
 	req = requests.Session()
 	req.post(url,data=user)
 	return req
+
+def analysis(soup):
+	links = soup.find_all('a')
+	for link in links:
+		if (
+			link.has_attr('href') and 
+			re.match('http://moodle.ntust.edu.tw/pluginfile.php/[0-9]+/mod_resource/content/',link['href'])
+		):
+			print('============================================================')
+			print('source>>>',link['href'])

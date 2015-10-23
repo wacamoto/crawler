@@ -1,18 +1,12 @@
 import re
 import time
+import secret
 from crawler import *
 
-def ays(soup):
-	links = soup.find_all('a')
-	for link in links:
-		if link.has_attr('href') and re.match('http://moodle.ntust.edu.tw/pluginfile.php/[0-9]+/mod_resource/content/',link['href']):
-			print('============================================================')
-			print('source>>>',link['href'])
-
 def main():
-	#req = login('http://moodle.ntust.edu.tw/login/index.php','','')
+	req = login('http://moodle.ntust.edu.tw/login/index.php',secret.username,secret.password)
 	regex = 'http://moodle.ntust.edu.tw/(?!login/logout.php)'
-	walk(['http://moodle.ntust.edu.tw/'],2,regex,ays)
+	walk(['http://moodle.ntust.edu.tw/'],2,regex,req=req)
 
 if __name__ == '__main__':
 	start = time.time()
