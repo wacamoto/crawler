@@ -1,15 +1,20 @@
-import re
-import time
-import secret
 import crawler
+import secret
+import time
+import re
 
 def main():
-	req = crawler.login('http://moodle.ntust.edu.tw/login/index.php',secret.username,secret.password)
-	regex = 'http://moodle.ntust.edu.tw/(?!login/logout.php)'
-	crawler.walk(['http://moodle.ntust.edu.tw/'],2,regex,req=req)
+	cr = crawler.Crawler()
+	cr.login('http://moodle.ntust.edu.tw/login/index.php',secret.username,secret.password)
+	cr.setRegex('http://moodle.ntust.edu.tw/(?!login/logout.php)')
+	cr.walk(['http://moodle.ntust.edu.tw/'],3)
+	
+	for url in cr.getUrlDiscover():
+		if re.match('http://moodle.ntust.edu.tw/pluginfile.php/[0-9]+/mod_resource/content/',url):
+				print('source:' + url)
 
 if __name__ == '__main__':
 	start = time.time()
 	main()
 	stop = time.time()
-	print('time:',stop - start)
+	print('time',stop - start)

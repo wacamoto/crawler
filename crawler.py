@@ -1,73 +1,67 @@
 import re
+import time
+import datetime
 import requests
 from bs4 import BeautifulSoup
-from multiprocessing.dummy import Pool as ThreadPool
-from functools import partial
 
+#for test
+import threadReq
 
-def walk(walkList, layer, regex, visited=[], req=requests):
-	print('layer:',layer)
-	links = multiWalk(walkList, req)
-	visited += walkList
-	walkList = unique(links,visited,regex)
+class Crawler:	
+	visited = []
+	walkList = []
+	regex = '^http[s]?://'
+	req = requests
 
-	if layer > 0 and walkList:
-		layer -= 1
-		walk(walkList, layer, regex, visited, req)
+	def walk(self, walkList, depth):
+		self.walkList = walkList
+		for layer in range(depth):
+			print('layer:', layer)
+			
+			#singo thread
+			links = []
+			for url in self.walkList:
+				print(datetime.datetime.fromtimestamp(time.time()).strftime('%H:%M:%S '),url)
+				html = self.req.get(url,verify=False).text
+				soup = BeautifulSoup(html,'lxml')
+				links += self.findLink(soup)
 
-def multiWalk(walkList, req):
-	pool = ThreadPool(4)
-	fun = partial(findLink, req)
-	results = pool.map(fun, walkList)
-	pool.close()
-	pool.join()
+			#eight thread
+			#links = threadReq.threadWalk(self.walkList,self.req)
 
-	links = []
-	for li in results:
-		links += li
-	return links
+			self.visited += self.walkList
+			self.walkList = self.urlFilter(links,self.visited,self.regex)
 
-def findLink(req, url):
-	print(url)
-	links = []
-	html = req.get(url,verify=False).text
-	soup = BeautifulSoup(html,'lxml')
-	
-	#find next layer links
-	for a in soup.find_all('a'):
-		if a.has_attr('href'):
-			links.append(a['href'])
+	def getUrlDiscover(self):
+		return self.visited + self.walkList
 
-	#all analysis write in analysis function
-	analysis(soup)
-	return links
+	def setRegex(self, regex):
+		self.regex = regex
 
-def unique(links, visited=[], regex='^http[s]?://'):
-	linkTmp = []
-	for link in links:
-		if (
-				link not in visited and
-				link not in linkTmp and
-				re.match(regex,link)
-			):
-				linkTmp.append(link)
-	return linkTmp
+	def login(self, url, username, password):
+		data = {
+			'username': username,
+			'password': password
+		}
+		self.req = self.req.Session()
+		self.req.post(url,data)
 
-def login(url, username, password):
-	user = {
-		'username':username,
-		'password':password
-	}
-	req = requests.Session()
-	req.post(url,data=user)
-	return req
+	@staticmethod
+	def urlFilter(links, visited, regex):
+		linkTmp = []
+		for link in links:
+			if (
+					link not in visited and
+					link not in linkTmp and
+					re.match(regex,link)
+				):
+					linkTmp.append(link)
+		return linkTmp
 
-def analysis(soup):
-	links = soup.find_all('a')
-	for link in links:
-		if (
-			link.has_attr('href') and 
-			re.match('http://moodle.ntust.edu.tw/pluginfile.php/[0-9]+/mod_resource/content/',link['href'])
-		):
-			print('============================================================')
-			print('source>>>',link['href'])
+	@staticmethod
+	def findLink(soup):
+		links = []
+		for a in soup.find_all('a'):
+			if a.has_attr('href'):
+				links.append(a['href'])
+		return links
