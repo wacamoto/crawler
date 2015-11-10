@@ -7,61 +7,59 @@ from bs4 import BeautifulSoup
 #for test
 import threadReq
 
-class Crawler:	
-	visited = []
-	walkList = []
-	regex = '^http[s]?://'
-	req = requests
+class Crawler:
+    def __init__(self): 
+        self.visited = []
+        self.regex = '^http[s]?://'
+        self.req = requests
 
-	def walk(self, walkList, depth):
-		self.walkList = walkList
-		for layer in range(depth):
-			print('layer:', layer)
-			
-			#singo thread
-			links = []
-			for url in self.walkList:
-				print(datetime.datetime.fromtimestamp(time.time()).strftime('%H:%M:%S '),url)
-				html = self.req.get(url,verify=False).text
-				soup = BeautifulSoup(html,'lxml')
-				links += self.findLink(soup)
+    def walk(self, walkList, depth):
+        for _ in range(depth):
+            
+            #singo thread
+            links = []
+            for url in walkList:
+                print(datetime.datetime.fromtimestamp(time.time()).strftime('%H:%M:%S '),url)
+                html = self.req.get(url,verify=False).text
+                soup = BeautifulSoup(html,'lxml')
+                links += self.__findLink(soup)
 
-			#eight thread
-			#links = threadReq.threadWalk(self.walkList,self.req)
+            #eight thread
+            #links = threadReq.threadWalk(walkList,self.req)
 
-			self.visited += self.walkList
-			self.walkList = self.urlFilter(links,self.visited,self.regex)
+            self.visited += walkList
+            walkList = self.__urlFilter(links,self.visited,self.regex)
 
-	def getUrlDiscover(self):
-		return self.visited + self.walkList
+        self.visited += walkList
 
-	def setRegex(self, regex):
-		self.regex = regex
+    def getUrlDiscover(self):
+        return self.visited
 
-	def login(self, url, username, password):
-		data = {
-			'username': username,
-			'password': password
-		}
-		self.req = self.req.Session()
-		self.req.post(url,data)
+    def setRegex(self, regex):
+        self.regex = regex
 
-	@staticmethod
-	def urlFilter(links, visited, regex):
-		linkTmp = []
-		for link in links:
-			if (
-					link not in visited and
-					link not in linkTmp and
-					re.match(regex,link)
-				):
-					linkTmp.append(link)
-		return linkTmp
+    def login(self, url, username, password):
+        data = {
+            'username': username,
+            'password': password
+        }
+        self.req = self.req.Session()
+        self.req.post(url,data)
 
-	@staticmethod
-	def findLink(soup):
-		links = []
-		for a in soup.find_all('a'):
-			if a.has_attr('href'):
-				links.append(a['href'])
-		return links
+    def __urlFilter(links, visited, regex):
+        linkTmp = []
+        for link in links:
+            if (
+                    link not in visited and
+                    link not in linkTmp and
+                    re.match(regex,link)
+                ):
+                    linkTmp.append(link)
+        return linkTmp
+
+    def __findLink(soup):
+        links = []
+        for a in soup.find_all('a'):
+            if a.has_attr('href'):
+                links.append(a['href'])
+        return links
